@@ -1,5 +1,11 @@
 [![PyPI](https://img.shields.io/pypi/v/pytorch-fid.svg)](https://pypi.org/project/pytorch-fid/)
 
+# Reason for fork
+
+Want to allow specifying FID calculation in terms of dataloaders and not filepaths.
+
+Everything below is from original repository.
+
 # FID score for PyTorch
 
 This is a port of the official implementation of [Fréchet Inception Distance](https://arxiv.org/abs/1706.08500) to PyTorch. 
