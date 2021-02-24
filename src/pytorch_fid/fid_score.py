@@ -85,7 +85,7 @@ class ImagePathDataset(torch.utils.data.Dataset):
         return img
 
 
-def get_activations(files, model, batch_size=50, dims=2048, device='cpu'):
+def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device='cpu'):
     """Calculates the activations of the pool_3 layer for all images.
 
     Params:
@@ -106,19 +106,26 @@ def get_activations(files, model, batch_size=50, dims=2048, device='cpu'):
     """
     model.eval()
 
-    if batch_size > len(files):
-        print(('Warning: batch size is bigger than the data size. '
-               'Setting batch size to data size'))
-        batch_size = len(files)
+    if "DataLoader" in type(files_or_dataloader).__name__:
+        dataloader = files_or_dataloader
+        pred_arr = np.empty((dataloader.dataset.x.shape[0], dims))
 
-    dataset = ImagePathDataset(files, transforms=TF.ToTensor())
-    dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=batch_size,
-                                             shuffle=False,
-                                             drop_last=False,
-                                             num_workers=cpu_count())
+    else:
+        files = files_or_dataloader
 
-    pred_arr = np.empty((len(files), dims))
+        if batch_size > len(files):
+            print(('Warning: batch size is bigger than the data size. '
+                'Setting batch size to data size'))
+            batch_size = len(files)
+
+        dataset = ImagePathDataset(files, transforms=TF.ToTensor())
+        dataloader = torch.utils.data.DataLoader(dataset,
+                                                batch_size=batch_size,
+                                                shuffle=False,
+                                                drop_last=False,
+                                                num_workers=cpu_count())
+
+        pred_arr = np.empty((len(files), dims))
 
     start_idx = 0
 
@@ -199,7 +206,7 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
             + np.trace(sigma2) - 2 * tr_covmean)
 
 
-def calculate_activation_statistics(files, model, batch_size=50, dims=2048,
+def calculate_activation_statistics(files_or_dataloader, model, batch_size=50, dims=2048,
                                     device='cpu'):
     """Calculation of the statistics used by the FID.
     Params:
@@ -217,13 +224,17 @@ def calculate_activation_statistics(files, model, batch_size=50, dims=2048,
     -- sigma : The covariance matrix of the activations of the pool_3 layer of
                the inception model.
     """
-    act = get_activations(files, model, batch_size, dims, device)
+    act = get_activations(files_or_dataloader, model, batch_size, dims, device)
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
 
 
-def compute_statistics_of_path(path, model, batch_size, dims, device):
+def compute_statistics_of_data(path_or_dataloader, model, batch_size, dims, device):
+    if "DataLoader" in type(path_or_dataloader).__name__:
+        return calculate_activation_statistics(path_or_dataloader, model, batch_size, dims, device)
+
+    path = path_or_dataloader
     if path.endswith('.npz'):
         with np.load(path) as f:
             m, s = f['mu'][:], f['sigma'][:]
@@ -237,19 +248,19 @@ def compute_statistics_of_path(path, model, batch_size, dims, device):
     return m, s
 
 
-def calculate_fid_given_paths(paths, batch_size, device, dims):
-    """Calculates the FID of two paths"""
-    for p in paths:
-        if not os.path.exists(p):
+def calculate_fid(paths_or_dataloaders, batch_size, device, dims):
+    """Calculates the FID of two paths or dataloaders"""
+    for item in paths_or_dataloaders:
+        if type(item) == str and not os.path.exists(item):
             raise RuntimeError('Invalid path: %s' % p)
 
     block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
 
     model = InceptionV3([block_idx]).to(device)
 
-    m1, s1 = compute_statistics_of_path(paths[0], model, batch_size,
+    m1, s1 = compute_statistics_of_data(paths_or_dataloaders[0], model, batch_size,
                                         dims, device)
-    m2, s2 = compute_statistics_of_path(paths[1], model, batch_size,
+    m2, s2 = compute_statistics_of_data(paths_or_dataloaders[1], model, batch_size,
                                         dims, device)
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
 
