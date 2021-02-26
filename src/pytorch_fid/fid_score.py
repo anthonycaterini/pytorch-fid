@@ -82,7 +82,7 @@ class ImagePathDataset(torch.utils.data.Dataset):
         img = Image.open(path).convert('RGB')
         if self.transforms is not None:
             img = self.transforms(img)
-        return img
+        return img, None # HACK: return a two-element tuple to align with supervised datasets
 
 
 def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device='cpu'):
@@ -129,7 +129,7 @@ def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device
 
     start_idx = 0
 
-    for batch in tqdm(dataloader):
+    for batch, _ in tqdm(dataloader):
         batch = batch.to(device)
 
         with torch.no_grad():
