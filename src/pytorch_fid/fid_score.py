@@ -132,6 +132,10 @@ def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device
     for batch, _ in tqdm(dataloader):
         batch = batch.to(device)
 
+        if batch.shape[1] == 1:
+            # HACK: Inception expects three channels so we tile
+            batch = batch.repeat((1,3,1,1))
+
         with torch.no_grad():
             pred = model(batch)[0]
 
