@@ -108,7 +108,7 @@ def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device
 
     if "DataLoader" in type(files_or_dataloader).__name__:
         dataloader = files_or_dataloader
-        pred_arr = np.empty((dataloader.dataset.x.shape[0], dims))
+        pred_arr = np.empty((len(dataloader.dataset), dims))
 
     else:
         files = files_or_dataloader
