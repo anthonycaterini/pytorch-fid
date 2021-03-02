@@ -82,14 +82,14 @@ class ImagePathDataset(torch.utils.data.Dataset):
         img = Image.open(path).convert('RGB')
         if self.transforms is not None:
             img = self.transforms(img)
-        return img, None # HACK: return a two-element tuple to align with supervised datasets
+        return img, torch.ones(1) # HACK: return a two-element tuple to align with supervised datasets
 
 
 def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device='cpu'):
     """Calculates the activations of the pool_3 layer for all images.
 
     Params:
-    -- files       : List of image files paths
+    -- files_or_dataloader       : Either a list of image files paths or a dataloader generator
     -- model       : Instance of inception model
     -- batch_size  : Batch size of images for the model to process at once.
                      Make sure that the number of samples is a multiple of
@@ -106,7 +106,7 @@ def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device
     """
     model.eval()
 
-    if "DataLoader" in type(files_or_dataloader).__name__:
+    if any(x in type(path_or_dataloader).__name__ for x in ("DataLoader", "function")):
         dataloader = files_or_dataloader
         pred_arr = np.empty((len(dataloader.dataset), dims))
 
@@ -214,7 +214,7 @@ def calculate_activation_statistics(files_or_dataloader, model, batch_size=50, d
                                     device='cpu'):
     """Calculation of the statistics used by the FID.
     Params:
-    -- files       : List of image files paths
+    -- files_or_dataloader       : Either a list of image files paths or a dataloader generator
     -- model       : Instance of inception model
     -- batch_size  : The images numpy array is split into batches with
                      batch size batch_size. A reasonable batch size
@@ -235,7 +235,7 @@ def calculate_activation_statistics(files_or_dataloader, model, batch_size=50, d
 
 
 def compute_statistics_of_data(path_or_dataloader, model, batch_size, dims, device):
-    if "DataLoader" in type(path_or_dataloader).__name__:
+    if any(x in type(path_or_dataloader).__name__ for x in ("DataLoader", "function")):
         return calculate_activation_statistics(path_or_dataloader, model, batch_size, dims, device)
 
     path = path_or_dataloader
