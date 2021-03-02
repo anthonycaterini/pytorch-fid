@@ -106,7 +106,7 @@ def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device
     """
     model.eval()
 
-    if any(x in type(path_or_dataloader).__name__ for x in ("DataLoader", "function")):
+    if any(x in type(files_or_dataloader).__name__ for x in ("DataLoader", "function")):
         dataloader = files_or_dataloader
         pred_arr = np.empty((len(dataloader.dataset), dims))
 
