@@ -106,9 +106,15 @@ def get_activations(files_or_dataloader, model, batch_size=50, dims=2048, device
     """
     model.eval()
 
-    if any(x in type(files_or_dataloader).__name__ for x in ("DataLoader", "function")):
+    if "Loader" in type(files_or_dataloader).__name__:
         dataloader = files_or_dataloader
-        pred_arr = np.empty((len(dataloader.dataset), dims))
+
+        try:
+            dataset_size = len(dataloader.dataset)
+        except AttributeError:
+            dataset_size = dataloader.num_total_samples
+
+        pred_arr = np.empty((dataset_size, dims))
 
     else:
         files = files_or_dataloader
@@ -235,7 +241,7 @@ def calculate_activation_statistics(files_or_dataloader, model, batch_size=50, d
 
 
 def compute_statistics_of_data(path_or_dataloader, model, batch_size, dims, device):
-    if any(x in type(path_or_dataloader).__name__ for x in ("DataLoader", "function")):
+    if "Loader" in type(path_or_dataloader).__name__:
         return calculate_activation_statistics(path_or_dataloader, model, batch_size, dims, device)
 
     path = path_or_dataloader
